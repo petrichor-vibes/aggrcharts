@@ -692,6 +692,7 @@ class Exchange extends EventEmitter {
     api,
     payload:
       | {
+          channel?: string
           type?: string
           event?: string
           op?: string
@@ -699,7 +700,8 @@ class Exchange extends EventEmitter {
           id?: number
           params?: Array<any>
         }
-      | string = { event: 'ping' },
+      | string
+      | (() => any) = { event: 'ping' },
     every = 30000
   ) {
     if (this.keepAliveIntervals[api.url]) {
@@ -709,7 +711,11 @@ class Exchange extends EventEmitter {
     this.keepAliveIntervals[api.url] = setInterval(() => {
       if (api.readyState === WebSocket.OPEN) {
         api.send(
-          typeof payload === 'string' ? payload : JSON.stringify(payload)
+          typeof payload === 'function'
+            ? JSON.stringify(payload())
+            : typeof payload === 'string'
+              ? payload
+              : JSON.stringify(payload)
         )
       }
     }, every)

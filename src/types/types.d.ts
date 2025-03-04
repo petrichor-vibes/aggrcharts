@@ -20,10 +20,6 @@ export interface AggregatorPayload {
   trackingId?: string
 }
 
-export interface AggregatedTrade extends Trade {
-  originalPrice: number
-}
-
 export interface AggregatorSettings {
   aggregationLength: AggregationLength
   calculateSlippage?: SlippageMode
@@ -45,11 +41,16 @@ export interface Trade {
   price: number
   size: number
   side: 'buy' | 'sell'
+  originalPrice?: number
+  avgPrice?: number
   amount?: number
   count?: number
-  originalPrice?: number
   liquidation?: boolean
   slippage?: number
+}
+
+export interface AggregatedTrade extends Trade {
+  value: number // cumulative price * size
 }
 
 export interface Volumes {

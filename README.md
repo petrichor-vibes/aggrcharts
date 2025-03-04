@@ -3,7 +3,7 @@
 
 Cryptocurrency market trades aggregator./
 
-Currently supporting Kucoin, BitMEX, Bitfinex, Binance, Coinbase, Bitstamp, Deribit, Huobi, Okex, Hitbtc, Poloniex, Bybit, Bitget, Mexc, Gate.io and Crypto.com ([see src/exchanges/](src/exchanges) for detail)
+Currently supporting Kucoin, BitMEX, Bitfinex, Binance, Coinbase, Bitstamp, Deribit, Huobi, Okex, Hitbtc, Poloniex, Bybit, Bitget, Bitunix, Mexc, Gate.io and Crypto.com ([see src/exchanges/](src/exchanges) for detail)
 
 ![screenshot](https://i.imgur.com/nHJxsdL.gif)
 
@@ -83,9 +83,9 @@ build your own aggr client docker:
 ```bash
 git clone https://github.com/Tucsky/aggr
 cd aggr
-docker build -t aggr-chart .
+docker-compose -f "docker\docker-compose.yml" up -d --build # prod
 ```
-you need to set the API_URL as environment variable for your own installation, if you want to use that.
+ If you want to use aggr-server as your local data source, load the docker-compose.dev.yml instead.
 
 ## Configuration
 
@@ -118,5 +118,7 @@ If you plan to use real money with this, USE AT YOUR OWN RISK.
 
 ## Support this project!
 
+BTC bc1q3f5ndx2zww3pw5c5vctw7t4wfgv05fdsc2graj<br>
+SOL FKMNaBJqdpNA1d33hiUEjHaovQ5AiBGACqRuKuxA9q3D<br>
 ETH 0x83bBC120a998cF7dFcBa1518CDDCb68Aa0D0c158<br>
 COINBASE https://commerce.coinbase.com/checkout/c58bd003-5e47-4cfb-ae25-5292f0a0e1e8

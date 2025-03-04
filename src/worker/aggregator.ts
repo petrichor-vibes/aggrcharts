@@ -170,7 +170,7 @@ class Aggregator {
       const trade = trades[i]
       const marketKey = trade.exchange + ':' + trade.pair
 
-      if (!this.connections[marketKey]) {
+      if (!this.connections[marketKey] || !trade.size || !trade.price) {
         continue
       }
 
@@ -196,7 +196,7 @@ class Aggregator {
       const trade = trades[i] as unknown as AggregatedTrade
       const marketKey = trade.exchange + ':' + trade.pair
 
-      if (!this.connections[marketKey]) {
+      if (!this.connections[marketKey] || !trade.size || !trade.price) {
         continue
       }
 
@@ -209,6 +209,7 @@ class Aggregator {
         ) {
           aggTrade.size += trade.size
           aggTrade.price = trade.price
+          aggTrade.value += trade.price * trade.size
           aggTrade.count += trade.count || 1
           continue
         } else {
@@ -217,6 +218,7 @@ class Aggregator {
       }
 
       trade.originalPrice = this.tickers[marketKey].price || trade.price
+      trade.value = trade.price * trade.size
 
       trade.count = trade.count || 1
       this.aggregationTimeouts[marketKey] = now + this.baseAggregationTimeout
@@ -263,6 +265,7 @@ class Aggregator {
           aggTrade.side === trade.side
         ) {
           aggTrade.size += trade.size
+          aggTrade.value += trade.price * trade.size
           aggTrade.count++
           continue
         } else {
@@ -271,12 +274,17 @@ class Aggregator {
       }
 
       trade.count = 1
+      trade.value = trade.price * trade.size
       this.aggregationTimeouts[tradeKey] = now + this.baseAggregationTimeout
       this.onGoingAggregations[tradeKey] = trade
     }
   }
 
-  processTrade(trade: Trade): Trade {
+  isAggregatedTrade(trade: Trade | AggregatedTrade): trade is AggregatedTrade {
+    return !!(trade as AggregatedTrade).value
+  }
+
+  processTrade(trade: AggregatedTrade | Trade): Trade {
     const marketKey = trade.exchange + ':' + trade.pair
 
     if (settings.calculateSlippage) {
@@ -285,24 +293,22 @@ class Aggregator {
           Math.round(
             (trade.price - trade.originalPrice + Number.EPSILON) * 10
           ) / 10
-        if (Math.abs(trade.slippage) / trade.price < 0.00025) {
-          trade.slippage = null
+        if (Math.abs(trade.slippage) / trade.price < 0.000025) {
+          trade.slippage = 0
         }
       } else if (settings.calculateSlippage === 'bps') {
-        if (trade.side === 'buy') {
-          trade.slippage = Math.floor(
-            ((trade.price - trade.originalPrice) / trade.originalPrice) * 10000
-          )
-        } else {
-          trade.slippage = Math.floor(
-            ((trade.originalPrice - trade.price) / trade.price) * 10000
-          )
-        }
+        trade.slippage = Math.round(
+          ((trade.price - trade.originalPrice) / trade.originalPrice) * 1e4
+        )
       }
     }
 
+    trade.avgPrice = this.isAggregatedTrade(trade)
+      ? trade.value / trade.size
+      : trade.price
+
     trade.amount =
-      (settings.preferQuoteCurrencySize ? trade.price : 1) * trade.size
+      (settings.preferQuoteCurrencySize ? trade.avgPrice : 1) * trade.size
 
     this.tickers[marketKey].updated = true
     this.tickers[marketKey].volume += trade.amount
@@ -312,10 +318,6 @@ class Aggregator {
 
     if (this.tickers[marketKey].initialPrice === null) {
       this.emitInitialPrice(marketKey, trade.price)
-    }
-
-    if (settings.aggregationLength > 0) {
-      trade.price = Math.max(trade.price, trade.originalPrice)
     }
 
     if (this.connections[marketKey].bucket) {
@@ -331,6 +333,10 @@ class Aggregator {
 
     trade.amount =
       (settings.preferQuoteCurrencySize ? trade.price : 1) * trade.size
+
+    trade.avgPrice = this.isAggregatedTrade(trade)
+      ? trade.value / trade.size
+      : trade.price
 
     if (this.connections[marketKey].bucket) {
       this.connections[marketKey].bucket['l' + trade.side] += trade.amount
